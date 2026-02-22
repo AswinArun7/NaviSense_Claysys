@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Navisense — Context-Aware AI Travel Planner</title>
+  <meta name="description"
+    content="Plan personalized, contextually-aware travel itineraries powered by AI. Get destination-specific insights, seasonal guidance, and budget-optimized suggestions." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,700;1,600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════ NAVBAR ═══════════════════════════ -->
+  <nav class="navbar" id="navbar">
+    <div class="nav-inner">
+      <a href="#" class="nav-logo">
+        <span class="logo-icon">✦</span>
+        <span>Navisense</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#planner">Plan Trip</a></li>
+        <li><a href="#how-it-works">How It Works</a></li>
+      </ul>
+      <button class="btn btn-primary nav-cta" onclick="scrollToPlanner()">Start Planning →</button>
+      <button class="nav-hamburger" id="navHamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Mobile nav drawer -->
+  <div class="mobile-nav" id="mobileNav">
+    <ul>
+      <li><a href="#features" onclick="closeMobileNav()">Features</a></li>
+      <li><a href="#planner" onclick="closeMobileNav()">Plan Trip</a></li>
+      <li><a href="#how-it-works" onclick="closeMobileNav()">How It Works</a></li>
+      <li><a href="#planner" class="btn btn-primary" onclick="closeMobileNav()">Start Planning</a></li>
+    </ul>
+  </div>
+
+  <!-- ═══════════════════════════ HERO ═══════════════════════════ -->
+  <section class="hero" id="home">
+    <!-- Animated background blobs -->
+    <div class="hero-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <!-- Floating destination cards -->
+    <div class="floating-cards">
+      <div class="float-card fc-1" aria-hidden="true">
+        <span class="fc-emoji">🗼</span>
+        <div>
+          <p class="fc-city">Paris</p>
+          <p class="fc-subtitle">City of Lights</p>
+        </div>
+      </div>
+      <div class="float-card fc-2" aria-hidden="true">
+        <span class="fc-emoji">🏯</span>
+        <div>
+          <p class="fc-city">Kyoto</p>
+          <p class="fc-subtitle">Timeless Japan</p>
+        </div>
+      </div>
+      <div class="float-card fc-3" aria-hidden="true">
+        <span class="fc-emoji">🏝️</span>
+        <div>
+          <p class="fc-city">Maldives</p>
+          <p class="fc-subtitle">Turquoise Bliss</p>
+        </div>
+      </div>
+      <div class="float-card fc-4" aria-hidden="true">
+        <span class="fc-emoji">🏔️</span>
+        <div>
+          <p class="fc-city">Swiss Alps</p>
+          <p class="fc-subtitle">Peak Adventure</p>
+        </div>
+      </div>
+    </div>
+    <div class="hero-content">
+      <div class="hero-badge">✦ Context-Aware AI Travel Planner</div>
+      <h1 class="hero-title">
+        Travel Smarter.<br />
+        <em>Experience More.</em>
+      </h1>
+      <p class="hero-sub">
+        Tell us your dream destination and we'll craft a deeply personalized itinerary — factoring in your budget,
+        season, travel style, and real-time destination intelligence.
+      </p>
+      <div class="hero-actions">
+        <button class="btn btn-primary btn-lg" onclick="scrollToPlanner()">
+          Plan My Trip
+          <span class="btn-arrow">→</span>
+        </button>
+        <button class="btn btn-ghost btn-lg" onclick="scrollToHowItWorks()">
+          See How It Works
+        </button>
+      </div>
+      <!-- Stats row -->
+      <div class="hero-stats">
+        <div class="stat-item">
+          <span class="stat-num">200+</span>
+          <span class="stat-label">Destinations</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">5K+</span>
+          <span class="stat-label">Itineraries Generated</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <span class="stat-num">4.9★</span>
+          <span class="stat-label">User Rating</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero-scroll-hint" onclick="scrollToPlanner()">
+      <span>Start Planning</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FEATURE STRIP ═══════════════════════════ -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-label">Why Navisense</div>
+      <h2 class="section-title">Intelligent travel planning, reimagined</h2>
+      <p class="section-sub">We combine live destination data with AI reasoning to create itineraries that actually fit
+        <em>your</em> trip.</p>
+      <div class="features-grid">
+        <div class="feature-card" data-delay="0">
+          <div class="feature-icon">🧭</div>
+          <h3>Context-Aware AI</h3>
+          <p>Our AI understands seasonality, local events, budget constraints, and travel intent to tailor every
+            suggestion.</p>
+        </div>
+        <div class="feature-card" data-delay="100">
+          <div class="feature-icon">🌐</div>
+          <h3>Live Destination Intelligence</h3>
+          <p>Real-time web-scraped data on attractions, cuisine, adventure spots, and seasonal highlights — not stale
+            training data.</p>
+        </div>
+        <div class="feature-card" data-delay="200">
+          <div class="feature-icon">💰</div>
+          <h3>Budget Optimization</h3>
+          <p>Budget tier classification ensures recommendations match your spend level, from backpacker to luxury
+            traveler.</p>
+        </div>
+        <div class="feature-card" data-delay="300">
+          <div class="feature-icon">🗺️</div>
+          <h3>Smart Routing</h3>
+          <p>Checkpoint-based routing minimizes travel time between attractions and respects your preferred pace.</p>
+        </div>
+        <div class="feature-card" data-delay="400">
+          <div class="feature-icon">🎯</div>
+          <h3>Purpose Matching</h3>
+          <p>Tell us if you want Adventure, Food, Scenery, Culture, or a Mix — the itinerary adapts entirely to your
+            intent.</p>
+        </div>
+        <div class="feature-card" data-delay="500">
+          <div class="feature-icon">⚡</div>
+          <h3>Instant Itineraries</h3>
+          <p>Intelligent caching ensures lightning-fast results. Popular routes are pre-computed and ready in seconds.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ PLANNER WIZARD ═══════════════════════════ -->
+  <section class="planner" id="planner">
+    <div class="planner-bg-decoration" aria-hidden="true">
+      <div class="pdeco-circle pdeco-1"></div>
+      <div class="pdeco-circle pdeco-2"></div>
+    </div>
+    <div class="container">
+      <div class="section-label">AI Planner</div>
+      <h2 class="section-title">Build Your Perfect Itinerary</h2>
+      <p class="section-sub">Answer a few questions and let our AI craft a personalized day-by-day travel plan.</p>
+
+      <!-- Progress Bar -->
+      <div class="wizard-progress" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="4"
+        id="wizardProgress">
+        <div class="progress-steps">
+          <div class="prog-step active" data-step="1">
+            <div class="prog-dot"><span>1</span></div>
+            <p>Origin &amp; Destination</p>
+          </div>
+          <div class="prog-line" id="line-1-2"></div>
+          <div class="prog-step" data-step="2">
+            <div class="prog-dot"><span>2</span></div>
+            <p>Dates &amp; Duration</p>
+          </div>
+          <div class="prog-line" id="line-2-3"></div>
+          <div class="prog-step" data-step="3">
+            <div class="prog-dot"><span>3</span></div>
+            <p>Budget &amp; Style</p>
+          </div>
+          <div class="prog-line" id="line-3-4"></div>
+          <div class="prog-step" data-step="4">
+            <div class="prog-dot"><span>4</span></div>
+            <p>Preferences</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="wizard-card" id="wizardCard">
+
+        <!-- ── STEP 1: Origin & Destination ── -->
+        <div class="wizard-step active" id="step-1">
+          <div class="step-header">
+            <div class="step-icon">🌍</div>
+            <div>
+              <h3 class="step-title">Where are you travelling?</h3>
+              <p class="step-desc">Tell us your starting point and dream destination.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="fromCity">
+                <span class="label-icon">📍</span> Starting Location
+              </label>
+              <div class="input-wrapper">
+                <input type="text" id="fromCity" class="form-input" placeholder="e.g. New Delhi, India"
+                  autocomplete="off" />
+                <div class="input-suggestions" id="fromSuggestions"></div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="toCity">
+                <span class="label-icon">✈️</span> Destination
+              </label>
+              <div class="input-wrapper">
+                <input type="text" id="toCity" class="form-input" placeholder="e.g. Paris, France" autocomplete="off" />
+                <div class="input-suggestions" id="toSuggestions"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Optional Checkpoints -->
+          <div class="form-group mt-4">
+            <label class="form-label">
+              <span class="label-icon">🔖</span> Checkpoints
+              <span class="label-optional">Optional</span>
+            </label>
+            <div class="checkpoint-wrapper" id="checkpointWrapper">
+              <div class="checkpoint-tags" id="checkpointTags"></div>
+              <div class="checkpoint-input-row">
+                <input type="text" id="checkpointInput" class="form-input"
+                  placeholder="Add a city to visit on the way..." />
+                <button class="btn btn-outline btn-sm" id="addCheckpointBtn" type="button">+ Add</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <div></div>
+            <button class="btn btn-primary btn-lg" onclick="nextStep()" id="step1Next">Continue →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 2: Dates & Duration ── -->
+        <div class="wizard-step" id="step-2">
+          <div class="step-header">
+            <div class="step-icon">📅</div>
+            <div>
+              <h3 class="step-title">When are you going?</h3>
+              <p class="step-desc">Select your travel window so we can account for seasonal conditions.</p>
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="startDate">
+                <span class="label-icon">🗓️</span> Departure Date
+              </label>
+              <input type="date" id="startDate" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="endDate">
+                <span class="label-icon">🗓️</span> Return Date
+              </label>
+              <input type="date" id="endDate" class="form-input" />
+            </div>
+          </div>
+
+          <!-- Duration display -->
+          <div class="duration-display" id="durationDisplay">
+            <div class="dur-icon">⏱️</div>
+            <div class="dur-info">
+              <p class="dur-num" id="durNum">—</p>
+              <p class="dur-label">Trip Duration</p>
+            </div>
+            <div class="dur-season" id="durSeason"></div>
+          </div>
+
+          <!-- Night Slider -->
+          <div class="form-group mt-4">
+            <label class="form-label" for="nightsSlider">
+              <span class="label-icon">🌙</span> Number of Nights
+              <span class="nights-val" id="nightsVal">5</span>
+            </label>
+            <div class="slider-track-wrap">
+              <input type="range" id="nightsSlider" class="range-slider" min="1" max="30" value="5" />
+              <div class="slider-labels">
+                <span>1 night</span>
+                <span>15 nights</span>
+                <span>30 nights</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-ghost btn-lg" onclick="prevStep()">← Back</button>
+            <button class="btn btn-primary btn-lg" onclick="nextStep()">Continue →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 3: Budget & Purpose ── -->
+        <div class="wizard-step" id="step-3">
+          <div class="step-header">
+            <div class="step-icon">💡</div>
+            <div>
+              <h3 class="step-title">Budget & Travel Style</h3>
+              <p class="step-desc">Help us calibrate recommendations to your spend level and interests.</p>
+            </div>
+          </div>
+
+          <!-- Budget Tiers -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">💰</span> Budget Tier
+            </label>
+            <div class="budget-cards" id="budgetCards" role="radiogroup" aria-label="Budget tier">
+              <button class="budget-card" data-value="budget" type="button" role="radio" aria-checked="false">
+                <span class="bc-emoji">🎒</span>
+                <span class="bc-label">Budget</span>
+                <span class="bc-desc">Hostels, street food, local transit</span>
+                <span class="bc-range">₹1,500–₹5,000/day</span>
+              </button>
+              <button class="budget-card" data-value="moderate" type="button" role="radio" aria-checked="false">
+                <span class="bc-emoji">🏨</span>
+                <span class="bc-label">Moderate</span>
+                <span class="bc-desc">3-star hotels, casual dining</span>
+                <span class="bc-range">₹5,000–₹12,000/day</span>
+              </button>
+              <button class="budget-card" data-value="premium" type="button" role="radio" aria-checked="false">
+                <span class="bc-emoji">✨</span>
+                <span class="bc-label">Premium</span>
+                <span class="bc-desc">4-star hotels, fine dining</span>
+                <span class="bc-range">₹12,000–₹25,000/day</span>
+              </button>
+              <button class="budget-card" data-value="luxury" type="button" role="radio" aria-checked="false">
+                <span class="bc-emoji">👑</span>
+                <span class="bc-label">Luxury</span>
+                <span class="bc-desc">5-star resorts, luxury experiences</span>
+                <span class="bc-range">₹25,000+/day</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Approximate total budget -->
+          <div class="form-group">
+            <label class="form-label" for="totalBudget">
+              <span class="label-icon">🏷️</span> Total Budget (Approximate)
+              <span class="label-optional">Optional</span>
+            </label>
+            <div class="budget-input-wrap">
+              <select class="form-input currency-sel" id="currencySelect">
+                <option value="INR">₹ INR</option>
+                <option value="USD">$ USD</option>
+                <option value="EUR">€ EUR</option>
+                <option value="GBP">£ GBP</option>
+                <option value="AUD">A$ AUD</option>
+                <option value="JPY">¥ JPY</option>
+              </select>
+              <input type="number" id="totalBudget" class="form-input" placeholder="e.g. 2000" min="0" />
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-ghost btn-lg" onclick="prevStep()">← Back</button>
+            <button class="btn btn-primary btn-lg" onclick="nextStep()">Continue →</button>
+          </div>
+        </div>
+
+        <!-- ── STEP 4: Purpose & Preferences ── -->
+        <div class="wizard-step" id="step-4">
+          <div class="step-header">
+            <div class="step-icon">🎨</div>
+            <div>
+              <h3 class="step-title">Travel Purpose & Preferences</h3>
+              <p class="step-desc">What kind of experiences do you seek? Pick all that apply.</p>
+            </div>
+          </div>
+
+          <!-- Purpose selector -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">🎯</span> Primary Travel Purpose
+              <span class="label-optional">Select one or more</span>
+            </label>
+            <div class="purpose-grid" id="purposeGrid" role="group" aria-label="Travel purpose">
+              <button class="purpose-btn" data-value="adventure" type="button">
+                <span class="pb-icon">🧗</span>
+                <span class="pb-label">Adventure</span>
+              </button>
+              <button class="purpose-btn" data-value="food" type="button">
+                <span class="pb-icon">🍜</span>
+                <span class="pb-label">Food & Cuisine</span>
+              </button>
+              <button class="purpose-btn" data-value="scenery" type="button">
+                <span class="pb-icon">🌅</span>
+                <span class="pb-label">Scenery & Nature</span>
+              </button>
+              <button class="purpose-btn" data-value="culture" type="button">
+                <span class="pb-icon">🎭</span>
+                <span class="pb-label">Culture & History</span>
+              </button>
+              <button class="purpose-btn" data-value="relaxation" type="button">
+                <span class="pb-icon">🧘</span>
+                <span class="pb-label">Relaxation</span>
+              </button>
+              <button class="purpose-btn" data-value="nightlife" type="button">
+                <span class="pb-icon">🌃</span>
+                <span class="pb-label">Nightlife</span>
+              </button>
+              <button class="purpose-btn" data-value="family" type="button">
+                <span class="pb-icon">👨‍👩‍👧</span>
+                <span class="pb-label">Family</span>
+              </button>
+              <button class="purpose-btn" data-value="romance" type="button">
+                <span class="pb-icon">💑</span>
+                <span class="pb-label">Romance</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Travel pace -->
+          <div class="form-group">
+            <label class="form-label">
+              <span class="label-icon">⏩</span> Travel Pace
+            </label>
+            <div class="pace-options" id="paceOptions" role="radiogroup">
+              <button class="pace-btn" data-value="relaxed" type="button">
+                🐢 Relaxed <span class="pace-hint">1–2 activities/day</span>
+              </button>
+              <button class="pace-btn" data-value="moderate" type="button">
+                🚶 Moderate <span class="pace-hint">3–4 activities/day</span>
+              </button>
+              <button class="pace-btn" data-value="intense" type="button">
+                🏃 Intense <span class="pace-hint">5+ activities/day</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Accommodation preference -->
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label" for="accommodation">
+                <span class="label-icon">🏠</span> Accommodation Preference
+              </label>
+              <select id="accommodation" class="form-input form-select">
+                <option value="">Any accommodation</option>
+                <option value="hostel">Hostel / Dormitory</option>
+                <option value="guesthouse">Guesthouse / B&amp;B</option>
+                <option value="hotel-budget">Budget Hotel (2–3 star)</option>
+                <option value="hotel-mid">Mid-range Hotel (3–4 star)</option>
+                <option value="hotel-luxury">Luxury Hotel (5 star)</option>
+                <option value="resort">Beach / Mountain Resort</option>
+                <option value="airbnb">Vacation Rental / Airbnb</option>
+                <option value="boutique">Boutique Hotel</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="groupSize">
+                <span class="label-icon">👥</span> Group Size
+              </label>
+              <select id="groupSize" class="form-input form-select">
+                <option value="solo">Solo Traveler</option>
+                <option value="couple">Couple (2 people)</option>
+                <option value="small">Small Group (3–5)</option>
+                <option value="medium">Group (6–10)</option>
+                <option value="large">Large Group (10+)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Special requirements -->
+          <div class="form-group">
+            <label class="form-label" for="specialNeeds">
+              <span class="label-icon">📝</span> Special Requirements
+              <span class="label-optional">Optional</span>
+            </label>
+            <textarea id="specialNeeds" class="form-input form-textarea"
+              placeholder="e.g. vegetarian meals only, wheelchair accessible, traveling with kids under 5, need visa guidance…"
+              rows="3"></textarea>
+          </div>
+
+          <div class="step-actions">
+            <button class="btn btn-ghost btn-lg" onclick="prevStep()">← Back</button>
+            <button class="btn btn-primary btn-lg btn-generate" onclick="generateItinerary()" id="generateBtn">
+              <span class="btn-text">✦ Generate Itinerary</span>
+              <span class="btn-spinner" style="display:none"></span>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- / wizard-card -->
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ LOADING SCREEN ═══════════════════════════ -->
+  <div class="loader-overlay" id="loaderOverlay" aria-live="polite" aria-atomic="true">
+    <div class="loader-content">
+      <div class="loader-globe">🌍</div>
+      <h3 class="loader-title">Crafting Your Journey</h3>
+      <div class="loader-steps" id="loaderSteps">
+        <div class="ls-item active" id="ls-0">🌐 Gathering destination intelligence…</div>
+        <div class="ls-item" id="ls-1">📅 Analysing seasonal conditions…</div>
+        <div class="ls-item" id="ls-2">💰 Optimising for your budget…</div>
+        <div class="ls-item" id="ls-3">🗺️ Building day-by-day route…</div>
+        <div class="ls-item" id="ls-4">✨ Finalising your personalised itinerary…</div>
+      </div>
+      <div class="loader-bar-wrap">
+        <div class="loader-bar" id="loaderBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ ITINERARY RESULT ═══════════════════════════ -->
+  <section class="itinerary-result" id="itineraryResult" aria-label="Generated itinerary">
+
+    <!-- Result Header -->
+    <div class="ir-header">
+      <div class="container">
+        <div class="ir-header-inner">
+          <div class="ir-title-block">
+            <span class="ir-badge" id="irBadge">✦ AI-Generated Plan</span>
+            <h2 class="ir-title" id="irTitle">Your Paris Itinerary</h2>
+            <p class="ir-meta" id="irMeta"></p>
+          </div>
+          <div class="ir-actions">
+            <button class="btn btn-outline btn-sm" onclick="printItinerary()">🖨️ Print</button>
+            <button class="btn btn-outline btn-sm" onclick="shareItinerary()">🔗 Share</button>
+            <button class="btn btn-primary btn-sm" onclick="resetPlanner()">Plan New Trip</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <!-- Context Chips (season, budget, purpose) -->
+      <div class="context-chips" id="contextChips"></div>
+
+      <div class="ir-layout">
+        <!-- LEFT: Day Timeline -->
+        <div class="ir-timeline">
+          <div class="timeline-header">
+            <h3>Day-by-Day Plan</h3>
+            <div class="timeline-toggles">
+              <button class="tg-btn active" onclick="setView('timeline')" id="viewTimeline">Timeline</button>
+              <button class="tg-btn" onclick="setView('compact')" id="viewCompact">Compact</button>
+            </div>
+          </div>
+
+          <div id="timelineContent"></div>
+        </div>
+
+        <!-- RIGHT: Info Sidebar -->
+        <aside class="ir-sidebar">
+          <!-- Trip Summary Card -->
+          <div class="sidebar-card">
+            <h4 class="sidebar-card-title">📊 Trip Summary</h4>
+            <div class="summary-stat-row">
+              <div class="ss-item">
+                <span class="ss-val" id="sumDays">—</span>
+                <span class="ss-label">Days</span>
+              </div>
+              <div class="ss-item">
+                <span class="ss-val" id="sumNights">—</span>
+                <span class="ss-label">Nights</span>
+              </div>
+              <div class="ss-item">
+                <span class="ss-val" id="sumActivities">—</span>
+                <span class="ss-label">Activities</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Budget Breakdown -->
+          <div class="sidebar-card">
+            <h4 class="sidebar-card-title">💰 Estimated Budget</h4>
+            <div class="budget-breakdown" id="budgetBreakdown"></div>
+            <div class="budget-total">
+              <span>Total Estimate</span>
+              <span id="budgetTotalVal">—</span>
+            </div>
+          </div>
+
+          <!-- Seasonal Insight -->
+          <div class="sidebar-card season-card" id="seasonCard">
+            <h4 class="sidebar-card-title">🌤️ Seasonal Insight</h4>
+            <div class="season-body" id="seasonBody"></div>
+          </div>
+
+          <!-- Top Tips -->
+          <div class="sidebar-card">
+            <h4 class="sidebar-card-title">💡 Insider Tips</h4>
+            <ul class="tips-list" id="tipsList"></ul>
+          </div>
+        </aside>
+      </div><!-- / ir-layout -->
+    </div>
+
+  </section><!-- / itinerary-result -->
+
+  <!-- ═══════════════════════════ HOW IT WORKS ═══════════════════════════ -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="section-label">Under the Hood</div>
+      <h2 class="section-title">How Navisense Works</h2>
+      <p class="section-sub">A transparent look at the intelligence behind your itinerary.</p>
+      <div class="hiw-steps">
+        <div class="hiw-step" data-delay="0">
+          <div class="hiw-num">01</div>
+          <div class="hiw-body">
+            <h3>User Personalization Layer</h3>
+            <p>We collect your travel dates, destination, budget, purpose, and checkpoints. This layer then detects the
+              season, classifies your budget tier, and validates the duration.</p>
+          </div>
+        </div>
+        <div class="hiw-connector" aria-hidden="true"></div>
+        <div class="hiw-step" data-delay="150">
+          <div class="hiw-num">02</div>
+          <div class="hiw-body">
+            <h3>Destination Knowledge Extraction</h3>
+            <p>Our scraping engine pulls structured data on top attractions, local cuisine, adventure activities, and
+              seasonal highlights from authoritative sources — with intelligent caching.</p>
+          </div>
+        </div>
+        <div class="hiw-connector" aria-hidden="true"></div>
+        <div class="hiw-step" data-delay="300">
+          <div class="hiw-num">03</div>
+          <div class="hiw-body">
+            <h3>AI Prompt Engineering</h3>
+            <p>Structured user context + live destination data are combined into precision-engineered prompts sent to
+              the Gemini API, grounding the AI in real, factual information.</p>
+          </div>
+        </div>
+        <div class="hiw-connector" aria-hidden="true"></div>
+        <div class="hiw-step" data-delay="450">
+          <div class="hiw-num">04</div>
+          <div class="hiw-body">
+            <h3>Itinerary Generation & Delivery</h3>
+            <p>A day-by-day, checkpoint-routed itinerary is generated, budget-estimated, and delivered to you — ready to
+              export, print, or share.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════ FOOTER ═══════════════════════════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-brand">
+          <a href="#" class="nav-logo">
+            <span class="logo-icon">✦</span>
+            <span>Navisense</span>
+          </a>
+          <p>Context-aware AI travel planner. Destination intelligence meets personalized precision.</p>
+        </div>
+        <div class="footer-links">
+          <div class="fl-col">
+            <p class="fl-heading">Product</p>
+            <a href="#features">Features</a>
+            <a href="#planner">Plan a Trip</a>
+            <a href="#how-it-works">How It Works</a>
+          </div>
+          <div class="fl-col">
+            <p class="fl-heading">Resources</p>
+            <a href="#">Travel Guides</a>
+            <a href="#">Destination Index</a>
+            <a href="#">API Docs</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 Navisense. Built with ✦ for travelers everywhere.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

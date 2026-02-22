@@ -1,0 +1,179 @@
+"""
+gemini_service.py — Gemini API integration using the new google-genai SDK.
+
+Builds a structured prompt from user context and destination data,
+calls Gemini, and returns a parsed itinerary dict.
+"""
+
+import json
+import logging
+from typing import Optional
+
+from google import genai
+from config import GEMINI_API_KEY, GEMINI_MODEL
+
+logger = logging.getLogger(__name__)
+
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+
+
+def generate_itinerary(context: dict, destination_data: dict, request: dict, weather: dict = None) -> dict:
+    """
+    Generate a day-by-day travel itinerary using the Gemini API.
+
+    Args:
+        context:          Output of logic_service.build_context()
+        destination_data: Output of scraper.scrape_destination()
+        request:          Raw request dict
+        weather:          Output of weather_service.get_weather() (optional)
+
+    Returns:
+        Parsed itinerary dict, or a fallback dict on failure.
+    """
+    if not client:
+        logger.error("Gemini client not initialized — GEMINI_API_KEY missing.")
+        return _fallback(request, context)
+
+    prompt   = _build_prompt(context, destination_data, request, weather or {})
+    response = _call_gemini(prompt)
+
+    if response is None:
+        return _fallback(request, context)
+
+    return _parse(response)
+
+
+def _build_prompt(context: dict, data: dict, request: dict, weather: dict = None) -> str:
+    """Assemble the Gemini prompt from context, destination data, and weather."""
+    weather = weather or {}
+    rates       = context["daily_rates"]
+    attractions = "\n".join(f"- {a}" for a in data.get("attractions", [])[:8]) or "Not available"
+    food        = "\n".join(f"- {f}" for f in data.get("food",        [])[:6]) or "Not available"
+
+    weather_section = ""
+    if weather:
+        weather_section = f"""
+WEATHER FORECAST (for Day 1 — {request.get('start_date', '')})
+- Condition:   {weather.get('condition', 'Unknown')}
+- Max Temp:    {weather.get('temp_max_c', '?')}°C
+- Min Temp:    {weather.get('temp_min_c', '?')}°C
+- Rain:        {weather.get('rain_mm', 0)} mm
+- Packing tip: {weather.get('tip', '')}
+Use this to suggest weather-appropriate activities and clothing notes."""
+
+    return f"""
+You are an expert travel planner. Generate a {context['days']}-day itinerary for {request['to']}.
+
+TRIP DETAILS
+- From:     {request.get('from_location', request.get('from', ''))}
+- To:       {request['to']}
+- Duration: {context['days']} days / {context['nights']} nights
+- Season:   {context['season']}
+- Budget:   {context['budget_tier']} (Rs.{rates['hotel']}/night hotel, Rs.{rates['food']}/day food)
+- Purposes: {', '.join(context['purposes']) or 'general sightseeing'}
+- Pace:     {context['pace']}
+- Group:    {request.get('group_size', 'couple')}
+{f"- Checkpoints: {', '.join(context['checkpoints'])}" if context['checkpoints'] else ""}
+{f"- Special needs: {request['special_needs']}" if request.get('special_needs') else ""}
+{weather_section}
+DESTINATION INTELLIGENCE
+Summary: {data.get('summary', '')}
+
+Attractions:
+{attractions}
+
+Local Food:
+{food}
+
+INSTRUCTIONS
+- Match activities to the stated purposes and pace
+- Stay within the budget tier
+- Include one local food experience per day
+- Use the destination data above as factual grounding
+- If weather data is provided, suggest weather-appropriate activities
+
+Return ONLY valid JSON. No markdown. No code fences. No commentary. Just the raw JSON object:
+{{
+  "destination": "{request['to']}",
+  "days": [
+    {{
+      "day": 1,
+      "theme": "string",
+      "activities": [
+        {{
+          "time": "09:00",
+          "period": "morning",
+          "title": "string",
+          "description": "string",
+          "category": "sightseeing | food | adventure | culture | relaxation",
+          "cost_inr": 0
+        }}
+      ]
+    }}
+  ],
+  "budget_summary": {{
+    "accommodation_inr": 0,
+    "food_inr": 0,
+    "transport_inr": 0,
+    "activities_inr": 0,
+    "total_inr": 0
+  }},
+  "tips": ["tip1", "tip2", "tip3"]
+}}
+""".strip()
+
+
+def _call_gemini(prompt: str) -> Optional[str]:
+    """Send prompt to Gemini using the new google-genai SDK."""
+    try:
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+        )
+        logger.info("Gemini responded successfully.")
+        return response.text.strip()
+    except Exception as e:
+        logger.error(f"Gemini call failed: {e}")
+        return None
+
+
+def _parse(raw: str) -> dict:
+    """
+    Parse Gemini's text response to a dict.
+    Strips markdown code fences if present.
+    """
+    text = raw
+    if text.startswith("```"):
+        lines = text.splitlines()
+        text  = "\n".join(lines[1:-1]).strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        logger.error("Failed to parse Gemini response as JSON.")
+        return {"error": "Invalid AI response", "raw": raw[:300]}
+
+
+def _fallback(request: dict, context: dict) -> dict:
+    """Return a minimal valid response when Gemini is unavailable."""
+    return {
+        "destination": request.get("to", ""),
+        "error":       "AI generation unavailable. Check GEMINI_API_KEY.",
+        "days": [
+            {
+                "day": i + 1,
+                "theme": f"Day {i + 1}",
+                "activities": [{
+                    "time": "09:00",
+                    "period": "morning",
+                    "title": "Free exploration",
+                    "description": "Explore the destination at your own pace.",
+                    "category": "sightseeing",
+                    "cost_inr": 0,
+                }],
+            }
+            for i in range(context["days"])
+        ],
+        "budget_summary": {},
+        "tips": [],
+    }

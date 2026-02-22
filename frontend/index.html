@@ -134,7 +134,8 @@
       <div class="section-label">Why Navisense</div>
       <h2 class="section-title">Intelligent travel planning, reimagined</h2>
       <p class="section-sub">We combine live destination data with AI reasoning to create itineraries that actually fit
-        <em>your</em> trip.</p>
+        <em>your</em> trip.
+      </p>
       <div class="features-grid">
         <div class="feature-card" data-delay="0">
           <div class="feature-icon">🧭</div>
@@ -551,6 +552,7 @@
           <div class="ir-actions">
             <button class="btn btn-outline btn-sm" onclick="printItinerary()">🖨️ Print</button>
             <button class="btn btn-outline btn-sm" onclick="shareItinerary()">🔗 Share</button>
+            <button class="btn btn-outline btn-sm" onclick="regeneratePlan()" id="regenerateBtn">🔄 Regenerate</button>
             <button class="btn btn-primary btn-sm" onclick="resetPlanner()">Plan New Trip</button>
           </div>
         </div>
@@ -610,6 +612,12 @@
           <div class="sidebar-card season-card" id="seasonCard">
             <h4 class="sidebar-card-title">🌤️ Seasonal Insight</h4>
             <div class="season-body" id="seasonBody"></div>
+          </div>
+
+          <!-- Weather Card (populated from API) -->
+          <div class="sidebar-card" id="weatherCard" style="display:none">
+            <h4 class="sidebar-card-title">🌡️ Weather Forecast</h4>
+            <div id="weatherBody"></div>
           </div>
 
           <!-- Top Tips -->

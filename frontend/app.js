@@ -616,9 +616,12 @@ const TIPS_POOL = [
   'Respecting local customs and dress codes opens more doors.',
 ];
 
-function renderTips() {
-  const shuffled = TIPS_POOL.sort(() => Math.random() - .5).slice(0, 4);
-  document.getElementById('tipsList').innerHTML = shuffled.map(t => `<li>${t}</li>`).join('');
+function renderTips(tipsArr) {
+  // Use real tips from API if provided, otherwise fall back to local pool
+  const arr = (tipsArr && tipsArr.length)
+    ? tipsArr
+    : TIPS_POOL.sort(() => Math.random() - .5).slice(0, 4);
+  document.getElementById('tipsList').innerHTML = arr.map(t => `<li>${t}</li>`).join('');
 }
 
 /* ── Context chips ── */
@@ -636,27 +639,72 @@ function renderContextChips(data) {
 }
 
 /* ── Generate Itinerary ── */
+const API_BASE = 'http://localhost:8000';
+
 window.generateItinerary = async function () {
   if (!validateStep(4)) return;
 
-  const from = document.getElementById('fromCity').value.trim();
-  const to = document.getElementById('toCity').value.trim();
-  const startDate = document.getElementById('startDate').value;
-  const nights = state.nights || parseInt(document.getElementById('nightsSlider').value);
-
-  // Show loader
   const loaderOverlay = document.getElementById('loaderOverlay');
   loaderOverlay.classList.add('active');
 
-  await simulateLoader();
+  const body = buildRequestBody();
 
-  // Hide loader
-  loaderOverlay.classList.remove('active');
+  try {
+    // Run loader animation + real API call in parallel for smooth UX
+    const [, apiData] = await Promise.all([
+      simulateLoader(),
+      fetchItinerary(body),
+    ]);
 
-  // Build itinerary data
-  const tripData = { from, to, startDate, nights };
-  renderResult(tripData);
+    loaderOverlay.classList.remove('active');
+
+    if (!apiData || apiData.error) {
+      showError(apiData?.error || 'Failed to generate itinerary. Please try again.');
+      return;
+    }
+
+    renderResult(apiData, body);
+
+  } catch (err) {
+    loaderOverlay.classList.remove('active');
+    showError('Network error — is the backend running on port 8000?');
+    console.error(err);
+  }
 };
+
+/** Collect all wizard form values into the API request body. */
+function buildRequestBody() {
+  return {
+    from: document.getElementById('fromCity').value.trim(),
+    to: document.getElementById('toCity').value.trim(),
+    start_date: document.getElementById('startDate').value,
+    nights: state.nights || parseInt(document.getElementById('nightsSlider').value),
+    budget: state.selectedBudget || 'moderate',
+    purposes: state.selectedPurposes,
+    pace: state.selectedPace || 'moderate',
+    checkpoints: state.checkpoints,
+    accommodation: document.getElementById('accommodation')?.value || null,
+    group_size: document.getElementById('groupSize')?.value || 'couple',
+    special_needs: document.getElementById('specialNeeds')?.value || null,
+  };
+}
+
+/** Call the backend /generate-plan endpoint. Returns parsed JSON or null. */
+async function fetchItinerary(body) {
+  const res = await fetch(`${API_BASE}/generate-plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`Server error: ${res.status}`);
+  return res.json();
+}
+
+/** Show an error toast and log to console. */
+function showError(msg) {
+  showToast('⚠️ ' + msg);
+  console.error('[Navisense]', msg);
+}
 
 async function simulateLoader() {
   const steps = document.querySelectorAll('.ls-item');
@@ -677,59 +725,94 @@ async function simulateLoader() {
 
 function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
-/* ── Render Result ── */
-function renderResult(data) {
-  const nights = data.nights || 5;
-  const days = [];
-  const THEMES = [
-    'Arrivals & First Impressions', 'City Explorer Day', 'Culture & Heritage Dive',
-    'Adventure & Outdoors', 'Hidden Gems Tour', 'Food & Markets Day',
-    'Scenic Escapes', 'Local Neighbourhood Walk', 'Leisure & Relaxation',
-    'Grand Finale — Best of the Best', 'Farewell Day',
-  ];
+/* ── Render Result (real API response) ── */
+function renderResult(apiData, requestBody) {
+  const destination = apiData.destination || requestBody.to;
+  const nights = requestBody.nights || state.nights || 5;
 
-  for (let i = 0; i < nights + 1; i++) {
-    const activities = buildDayActivities();
-    days.push({
-      title: `Day ${i + 1}: ${THEMES[i % THEMES.length]}`,
-      subtitle: i === 0 ? `Arrive & settle in ${data.to}` : i === nights ? `Last day — farewell to ${data.to}` : `Full day exploration`,
-      activities,
-    });
-  }
+  // Adapt real API days → timeline format
+  const days = (apiData.days || []).map((d, i) => ({
+    title: `Day ${d.day}: ${d.theme || 'Exploration'}`,
+    subtitle: i === 0
+      ? `Arrive & begin exploring ${destination}`
+      : i === (apiData.days.length - 1)
+        ? `Final day in ${destination}`
+        : 'Full day exploration',
+    activities: (d.activities || []).map(act => ({
+      period: act.period || 'morning',
+      title: act.title,
+      desc: act.description,
+      tags: [
+        act.category ? act.category.charAt(0).toUpperCase() + act.category.slice(1) : 'Activity',
+        act.cost_inr > 0 ? `₹${act.cost_inr.toLocaleString('en-IN')}` : 'Free',
+      ],
+    })),
+  }));
 
-  // Render IR header
-  document.getElementById('irTitle').textContent = `Your ${data.to} Itinerary`;
-  const startFmt = data.startDate ? new Date(data.startDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '';
-  document.getElementById('irMeta').textContent = `${data.from} → ${data.to}${startFmt ? ` · Departing ${startFmt}` : ''} · ${nights + 1} Days`;
+  // Header
+  document.getElementById('irTitle').textContent = `Your ${destination} Itinerary`;
+  const startFmt = requestBody.start_date
+    ? new Date(requestBody.start_date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
+  document.getElementById('irMeta').textContent =
+    `${requestBody.from} → ${destination}${startFmt ? ` · Departing ${startFmt}` : ''} · ${nights + 1} Days`;
 
-  // Render chips
-  renderContextChips(data);
+  // Context chips
+  renderContextChips({ startDate: requestBody.start_date, nights });
 
-  // Render timeline
+  // Timeline
   const totalActivities = renderTimeline(days);
 
-  // Budget
-  renderBudgetBreakdown(nights);
+  // Budget — use real data from API if available, else estimate
+  const bs = apiData.budget_summary;
+  if (bs && bs.total_inr) {
+    renderRealBudget(bs);
+  } else {
+    renderBudgetBreakdown(nights);
+  }
 
-  // Summary
+  // Summary counts
   document.getElementById('sumDays').textContent = nights + 1;
   document.getElementById('sumNights').textContent = nights;
   document.getElementById('sumActivities').textContent = totalActivities;
 
   // Season insight
-  renderSeasonInsight(data.startDate);
+  renderSeasonInsight(requestBody.start_date);
 
-  // Tips
-  renderTips();
+  // Weather — show if returned by API
+  renderWeather(apiData.weather);
 
-  // Show result
+  // Tips — prefer real API tips, fall back to local pool
+  renderTips(apiData.tips);
+
+  // Show result section
   const resultSection = document.getElementById('itineraryResult');
   resultSection.classList.add('visible');
+  setTimeout(() => resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
 
-  // Scroll to result
-  setTimeout(() => {
-    resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }, 100);
+/** Render budget breakdown from real Gemini budget_summary object. */
+function renderRealBudget(bs) {
+  const items = [
+    { label: '🏨 Accommodation', val: bs.accommodation_inr || 0 },
+    { label: '🍽️ Food & Dining', val: bs.food_inr || 0 },
+    { label: '🚘 Transport', val: bs.transport_inr || 0 },
+    { label: '🎟️ Activities', val: bs.activities_inr || 0 },
+  ];
+  const maxVal = Math.max(...items.map(i => i.val), 1);
+
+  document.getElementById('budgetBreakdown').innerHTML = items.map(it => {
+    const pct = Math.round((it.val / maxVal) * 100);
+    return `
+      <div class="bb-row">
+        <span class="bb-label">${it.label}</span>
+        <div class="bb-bar-wrap"><div class="bb-bar" style="width:${pct}%"></div></div>
+        <span class="bb-val">₹${it.val.toLocaleString('en-IN')}</span>
+      </div>`;
+  }).join('');
+
+  const total = bs.total_inr || items.reduce((s, i) => s + i.val, 0);
+  document.getElementById('budgetTotalVal').textContent = `₹${total.toLocaleString('en-IN')}`;
 }
 
 /* ── Reset ── */
@@ -778,6 +861,58 @@ window.resetPlanner = function () {
 
   scrollToPlanner();
 };
+
+/* ── Regenerate Plan ── */
+window.regeneratePlan = async function () {
+  const btn = document.getElementById('regenerateBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '\u23f3 Regenerating\u2026'; }
+
+  const loaderOverlay = document.getElementById('loaderOverlay');
+  loaderOverlay.classList.add('active');
+
+  document.querySelectorAll('.ls-item').forEach(el => el.classList.remove('active', 'done'));
+  document.getElementById('loaderBar').style.width = '0%';
+
+  const body = buildRequestBody();
+
+  try {
+    const [, apiData] = await Promise.all([
+      simulateLoader(),
+      fetchItinerary(body),
+    ]);
+    loaderOverlay.classList.remove('active');
+    if (!apiData || apiData.error) {
+      showError(apiData?.error || 'Regeneration failed. Please try again.');
+    } else {
+      renderResult(apiData, body);
+    }
+  } catch (err) {
+    loaderOverlay.classList.remove('active');
+    showError('Network error \u2014 is the backend running?');
+    console.error(err);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '\ud83d\udd04 Regenerate'; }
+  }
+};
+
+/** Render weather data into the sidebar weather card. */
+function renderWeather(weather) {
+  const card = document.getElementById('weatherCard');
+  const body = document.getElementById('weatherBody');
+  if (!card || !body || !weather || !weather.condition) {
+    if (card) card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  body.innerHTML = `
+    <div class="weather-row">
+      <span class="weather-condition">${weather.condition}</span>
+      <span class="weather-temp">\u2191${weather.temp_max_c ?? '?'}\u00b0C \u00b7 \u2193${weather.temp_min_c ?? '?'}\u00b0C</span>
+    </div>
+    ${weather.rain_mm > 0 ? `<p class="weather-rain">\ud83c\udf27\ufe0f ${weather.rain_mm} mm expected</p>` : ''}
+    <p class="weather-tip">\ud83d\udca1 ${weather.tip || ''}</p>
+  `;
+}
 
 /* ── View Toggle ── */
 window.setView = function (mode) {

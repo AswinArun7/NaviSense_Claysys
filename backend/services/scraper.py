@@ -1,127 +1,290 @@
 """
-scraper.py — Wikipedia destination scraper.
+scraper.py — Multi-source destination data aggregator.
 
-Accepts a destination name, scrapes the Wikipedia tourism section,
-extracts attractions and food, returns a structured dictionary.
-Unrelated sections (history, economy, politics, etc.) are excluded.
+Sources:
+  1. Wikipedia   — baseline facts and attractions (global)
+  2. Wikivoyage  — travel-focused See/Do/Eat content (global)
+  3. Incredible India — experiential enrichment (Indian destinations only)
+
+All scrapers are timeout-controlled and fail silently.
+The only function the backend should call is get_destination_data().
 """
 
-import requests
 import logging
+import re
+import requests
 from bs4 import BeautifulSoup
-from urllib.parse import quote_plus
-from typing import Optional
+from urllib.parse import quote
 
-logger = logging.getLogger(__name__)
+from utils.helpers import dedupe_limit
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; Navisense/1.0)",
-    "Accept-Language": "en-US,en;q=0.9",
-}
-TIMEOUT = 10
+logger  = logging.getLogger(__name__)
+HEADERS = {"User-Agent": "NavisenseBot/1.0 (travel planner research tool)"}
 
-TOURISM_KEYWORDS = {
-    "tourism", "attraction", "landmark", "sights", "culture",
-    "cuisine", "food", "restaurant", "dining", "eat", "drink",
-    "festival", "event", "park", "beach", "nature", "wildlife",
-    "heritage", "museum", "architecture", "shopping", "market",
-    "temple", "palace", "castle", "fort", "nightlife", "activities",
-}
+# Timeouts (seconds)
+WIKI_TIMEOUT    = 3
+VOYAGE_TIMEOUT  = 3
+INDIA_TIMEOUT   = 2
 
-SKIP_SECTIONS = {
-    "history", "economy", "demographics", "politics", "government",
-    "education", "infrastructure", "media", "notable people", "sports",
-    "sport", "twin towns", "sister cities", "see also", "references",
-    "external links", "notes", "footnotes", "bibliography",
+# Indian destinations that trigger Incredible India scraping
+INDIAN_STATES = {
+    "goa", "kerala", "karnataka", "rajasthan", "tamil nadu",
+    "maharashtra", "delhi", "new delhi", "himachal pradesh",
+    "uttarakhand", "jammu", "kashmir", "punjab", "gujara",
+    "andhra pradesh", "telangana", "west bengal", "odisha",
+    "manali", "shimla", "dharamshala", "jaipur", "udaipur",
+    "agra", "varanasi", "mumbai", "bangalore", "bengaluru",
+    "hyderabad", "kolkata", "chennai", "kochi", "mysore",
+    "rishikesh", "haridwar", "ooty", "coorg", "munnar",
 }
 
-FOOD_KEYWORDS = {"cuisine", "food", "restaurant", "dining", "eat", "drink", "market"}
 
+# ──────────────────────────────────────────────
+# Public entry point
+# ──────────────────────────────────────────────
 
-def scrape_destination(destination: str) -> dict:
+def get_destination_data(destination: str) -> dict:
     """
-    Scrape Wikipedia for a destination and return structured travel data.
+    Aggregate destination data from all available sources.
+
+    This is the only function main.py should call.
+
+    Args:
+        destination: City or region name (e.g. "Goa", "Paris")
 
     Returns:
-        {
-            "destination": str,
-            "summary":     str,
-            "attractions": list[str],
-            "food":        list[str],
-        }
+        Merged dict with keys: summary, attractions, activities, food
     """
-    encoded = quote_plus(destination.replace(",", "").strip())
+    wiki_data   = {}
+    voyage_data = {}
+    india_data  = {}
 
+    try:
+        wiki_data = scrape_wikipedia(destination)
+        logger.info(f"Wikipedia: {len(wiki_data.get('attractions', []))} attractions")
+    except Exception as e:
+        logger.warning(f"Wikipedia failed for {destination}: {e}")
+
+    try:
+        voyage_data = scrape_wikivoyage(destination)
+        logger.info(f"Wikivoyage: {len(voyage_data.get('attractions', []))} attractions")
+    except Exception as e:
+        logger.warning(f"Wikivoyage failed for {destination}: {e}")
+
+    if is_indian_destination(destination):
+        try:
+            india_data = scrape_incredible_india(destination)
+            logger.info(f"Incredible India: {len(india_data.get('attractions', []))} items")
+        except Exception as e:
+            logger.warning(f"Incredible India failed for {destination}: {e}")
+
+    return merge_destination_data(wiki_data, voyage_data, india_data)
+
+
+# ──────────────────────────────────────────────
+# Wikipedia scraper
+# ──────────────────────────────────────────────
+
+WIKI_TRAVEL_SECTIONS = {
+    "tourism", "tourist", "attractions", "sights", "places of interest",
+    "things to do", "recreation", "culture", "cuisine", "food", "restaurants",
+    "shopping", "nightlife", "arts", "music", "festivals",
+}
+
+WIKI_SKIP_SECTIONS = {
+    "history", "geography", "economy", "politics", "government",
+    "demographics", "education", "infrastructure", "transport",
+    "references", "see also", "external links", "notes", "further reading",
+}
+
+
+def scrape_wikipedia(destination: str) -> dict:
+    """Scrape Wikipedia for destination attractions and food."""
+    url  = f"https://en.wikipedia.org/wiki/{quote(destination.replace(' ', '_'))}"
+    resp = requests.get(url, headers=HEADERS, timeout=WIKI_TIMEOUT)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
     return {
-        "destination": destination,
-        "summary":     _get_summary(encoded),
-        "attractions": _get_sections(encoded, bucket="attractions"),
-        "food":        _get_sections(encoded, bucket="food"),
+        "summary":     _wiki_summary(soup),
+        "attractions": _wiki_list_items(soup, WIKI_TRAVEL_SECTIONS - {"food", "cuisine", "restaurants"}),
+        "activities":  [],
+        "food":        _wiki_list_items(soup, {"food", "cuisine", "restaurants", "eat"}),
     }
 
 
-def _get_summary(encoded: str) -> str:
-    """Fetch a 2-sentence overview from the Wikipedia REST API."""
-    resp = _get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{encoded}")
-    if resp is None:
-        return ""
-    text  = resp.json().get("extract", "")
-    parts = text.split(". ")
-    return ". ".join(parts[:2]) + ("." if len(parts) > 1 else "")
-
-
-def _get_sections(encoded: str, bucket: str) -> list:
-    """
-    Parse Wikipedia HTML and return items from tourism sections.
-
-    Args:
-        encoded: URL-encoded destination name.
-        bucket:  "attractions" or "food".
-    """
-    resp = _get(f"https://en.wikipedia.org/wiki/{encoded}")
-    if resp is None:
-        return []
-
-    soup    = BeautifulSoup(resp.text, "html.parser")
+def _wiki_summary(soup: BeautifulSoup) -> str:
     content = soup.find("div", {"id": "mw-content-text"})
     if not content:
-        return []
-
-    results       = []
-    active_bucket = None
-
-    for tag in content.find_all(["h2", "h3", "li", "p"]):
-        if tag.name in ["h2", "h3"]:
-            active_bucket = _classify_heading(tag.get_text(strip=True))
-        elif tag.name in ["li", "p"] and active_bucket == bucket:
-            text = tag.get_text(strip=True)
-            if len(text) > 10 and len(results) < 8:
-                results.append(text[:140])
-
-    return results
+        return ""
+    for p in content.find_all("p", recursive=False):
+        text = p.get_text(" ", strip=True)
+        if len(text) > 80:
+            return re.sub(r"\[\d+\]", "", text)[:400]
+    return ""
 
 
-def _classify_heading(heading_raw: str) -> Optional[str]:
+def _wiki_list_items(soup: BeautifulSoup, target_sections: set) -> list:
+    """Extract list items from headings whose text matches target_sections."""
+    items = []
+    for heading in soup.find_all(["h2", "h3"]):
+        heading_text = heading.get_text(" ", strip=True).lower()
+        if any(kw in heading_text for kw in target_sections):
+            if any(kw in heading_text for kw in WIKI_SKIP_SECTIONS):
+                continue
+            for sib in heading.find_next_siblings():
+                if sib.name in ["h2", "h3"]:
+                    break
+                if sib.name in ["ul", "ol"]:
+                    for li in sib.find_all("li"):
+                        text = li.get_text(" ", strip=True)
+                        text = re.sub(r"\[\d+\]", "", text)
+                        if 5 < len(text) < 120:
+                            items.append(text)
+    return items
+
+
+# ──────────────────────────────────────────────
+# Wikivoyage scraper
+# ──────────────────────────────────────────────
+
+VOYAGE_SEE_DO    = {"see", "do", "activities", "sights", "get around"}
+VOYAGE_EAT       = {"eat", "drink", "food", "restaurants"}
+VOYAGE_SUMMARY   = {"understand", "overview"}
+
+
+def scrape_wikivoyage(destination: str) -> dict:
+    """Scrape Wikivoyage for the See/Do/Eat sections."""
+    url  = f"https://en.wikivoyage.org/wiki/{quote(destination.replace(' ', '_'))}"
+    resp = requests.get(url, headers=HEADERS, timeout=VOYAGE_TIMEOUT)
+    resp.raise_for_status()
+
+    soup = BeautifulSoup(resp.text, "html.parser")
+
+    return {
+        "summary":     _voyage_summary(soup),
+        "attractions": _voyage_items(soup, VOYAGE_SEE_DO - {"activities"}),
+        "activities":  _voyage_items(soup, {"do", "activities"}),
+        "food":        _voyage_items(soup, VOYAGE_EAT),
+    }
+
+
+def _voyage_summary(soup: BeautifulSoup) -> str:
+    for heading in soup.find_all(["h2", "h3"]):
+        if heading.get_text(strip=True).lower() in VOYAGE_SUMMARY:
+            for sib in heading.find_next_siblings():
+                if sib.name in ["h2", "h3"]:
+                    break
+                if sib.name == "p":
+                    text = sib.get_text(" ", strip=True)
+                    if len(text) > 60:
+                        return text[:400]
+    # fallback: first paragraph in content
+    for p in soup.select("#mw-content-text p"):
+        t = p.get_text(" ", strip=True)
+        if len(t) > 80:
+            return t[:400]
+    return ""
+
+
+def _voyage_items(soup: BeautifulSoup, target_sections: set) -> list:
+    """Extract listing names and descriptions from Wikivoyage sections."""
+    items = []
+    for heading in soup.find_all(["h2", "h3"]):
+        if heading.get_text(strip=True).lower() in target_sections:
+            for sib in heading.find_next_siblings():
+                if sib.name in ["h2", "h3"]:
+                    break
+                # Wikivoyage uses dt for listing names
+                for dt in sib.find_all("dt"):
+                    name = dt.get_text(" ", strip=True)
+                    if 2 < len(name) < 80:
+                        items.append(name)
+                # Also grab plain list items
+                for li in sib.find_all("li"):
+                    text = li.get_text(" ", strip=True)
+                    if 5 < len(text) < 120:
+                        items.append(text)
+    return items
+
+
+# ──────────────────────────────────────────────
+# Incredible India scraper
+# ──────────────────────────────────────────────
+
+def scrape_incredible_india(destination: str) -> dict:
     """
-    Classify a section heading as 'food', 'attractions', or None (skip).
+    Scrape incredibleindia.org for experiential enrichment.
+    Only triggered for Indian destinations.
+    Timeout hard-capped at INDIA_TIMEOUT seconds.
     """
-    heading = heading_raw.lower().replace("[edit]", "").strip()
+    slug = destination.lower().replace(" ", "-")
+    url  = f"https://www.incredibleindia.gov.in/content/incredible-india/en/{slug}.html"
 
-    if any(skip in heading for skip in SKIP_SECTIONS):
-        return None
-    if any(kw in heading for kw in FOOD_KEYWORDS):
-        return "food"
-    if any(kw in heading for kw in TOURISM_KEYWORDS):
-        return "attractions"
-    return None
+    resp = requests.get(url, headers=HEADERS, timeout=INDIA_TIMEOUT)
+    resp.raise_for_status()
+
+    soup  = BeautifulSoup(resp.text, "html.parser")
+    items = []
+
+    # Extract headings and list items from the main content area
+    content = soup.select_one(".container main, main, article, .content")
+    if not content:
+        content = soup
+
+    for tag in content.find_all(["h2", "h3", "h4", "li"]):
+        text = tag.get_text(" ", strip=True)
+        if 5 < len(text) < 120:
+            items.append(text)
+
+    return {
+        "summary":     "",          # Incredible India prioritises experiential copy, skip summary
+        "attractions": items[:10],
+        "activities":  items[10:18],
+        "food":        [],
+    }
 
 
-def _get(url: str) -> Optional[requests.Response]:
-    """Make a GET request. Returns None on any failure."""
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-        resp.raise_for_status()
-        return resp
-    except requests.exceptions.RequestException as e:
-        logger.warning(f"Request failed ({url}): {e}")
-        return None
+# ──────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────
+
+def is_indian_destination(destination: str) -> bool:
+    """Return True if the destination is a known Indian city/state."""
+    return destination.strip().lower() in INDIAN_STATES
+
+
+def merge_destination_data(wiki: dict, voyage: dict, india: dict) -> dict:
+    """
+    Merge data from all three sources with deduplication and token limits.
+
+    Priority:
+      summary    → Wikivoyage > Wikipedia
+      attractions → Wikipedia + Wikivoyage + Incredible India (limit 12)
+      activities  → Wikivoyage + Incredible India (limit 8)
+      food        → Wikivoyage > Wikipedia + Incredible India (limit 8)
+    """
+    return {
+        "summary": (
+            voyage.get("summary")
+            or wiki.get("summary")
+            or ""
+        ),
+        "attractions": dedupe_limit(
+            wiki.get("attractions",   [])
+            + voyage.get("attractions", [])
+            + india.get("attractions",  []),
+            limit=12,
+        ),
+        "activities": dedupe_limit(
+            voyage.get("activities", [])
+            + india.get("activities",  []),
+            limit=8,
+        ),
+        "food": dedupe_limit(
+            voyage.get("food", [])
+            + wiki.get("food",   [])
+            + india.get("food",  []),
+            limit=8,
+        ),
+    }

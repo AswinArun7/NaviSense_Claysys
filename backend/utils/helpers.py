@@ -28,3 +28,24 @@ def build_cache_key(*parts: str) -> str:
     """
     joined = "_".join(str(p) for p in parts)
     return "".join(c if c.isalnum() or c == "_" else "_" for c in joined.lower())
+
+
+def dedupe_limit(items: list, limit: int = 10) -> list:
+    """
+    Deduplicate a list of strings (case-insensitive) and cap at limit items.
+
+    Safely handles None and whitespace-only entries.
+    """
+    seen   = set()
+    result = []
+    for item in items:
+        if not item:
+            continue
+        clean = item.strip()
+        key   = clean.lower()
+        if clean and key not in seen:
+            seen.add(key)
+            result.append(clean)
+        if len(result) >= limit:
+            break
+    return result

@@ -1879,6 +1879,20 @@ textarea {
   text-align: right;
 }
 
+.bb-sub {
+  font-size: .7rem;
+  color: var(--c-text-3);
+  font-weight: 400;
+  display: block;
+}
+
+.bb-perperson {
+  font-size: .78rem;
+  color: var(--c-text-3);
+  font-weight: 500;
+  margin-left: 8px;
+}
+
 .budget-total {
   display: flex;
   justify-content: space-between;

@@ -674,6 +674,10 @@ window.generateItinerary = async function () {
 
 /** Collect all wizard form values into the API request body. */
 function buildRequestBody() {
+  const rawBudget = parseFloat(document.getElementById('totalBudget')?.value) || null;
+  const currency = document.getElementById('currencySelect')?.value || 'INR';
+  const groupSize = document.getElementById('groupSize')?.value || 'couple';
+
   return {
     from: document.getElementById('fromCity').value.trim(),
     to: document.getElementById('toCity').value.trim(),
@@ -684,8 +688,10 @@ function buildRequestBody() {
     pace: state.selectedPace || 'moderate',
     checkpoints: state.checkpoints,
     accommodation: document.getElementById('accommodation')?.value || null,
-    group_size: document.getElementById('groupSize')?.value || 'couple',
+    group_size: groupSize,
     special_needs: document.getElementById('specialNeeds')?.value || null,
+    total_budget: rawBudget,
+    currency: currency,
   };
 }
 
@@ -766,7 +772,7 @@ function renderResult(apiData, requestBody) {
   // Budget — use real data from API if available, else estimate
   const bs = apiData.budget_summary;
   if (bs && bs.total_inr) {
-    renderRealBudget(bs);
+    renderRealBudget(bs, requestBody);
   } else {
     renderBudgetBreakdown(nights);
   }
@@ -792,7 +798,10 @@ function renderResult(apiData, requestBody) {
 }
 
 /** Render budget breakdown from real Gemini budget_summary object. */
-function renderRealBudget(bs) {
+function renderRealBudget(bs, requestBody) {
+  const groupCount = { solo: 1, couple: 2, small: 4, medium: 8, large: 12 }[requestBody?.group_size] || 2;
+  const nights = requestBody?.nights || 1;
+
   const items = [
     { label: '🏨 Accommodation', val: bs.accommodation_inr || 0 },
     { label: '🍽️ Food & Dining', val: bs.food_inr || 0 },
@@ -800,19 +809,27 @@ function renderRealBudget(bs) {
     { label: '🎟️ Activities', val: bs.activities_inr || 0 },
   ];
   const maxVal = Math.max(...items.map(i => i.val), 1);
+  const total = bs.total_inr || items.reduce((s, i) => s + i.val, 0);
 
   document.getElementById('budgetBreakdown').innerHTML = items.map(it => {
     const pct = Math.round((it.val / maxVal) * 100);
+    const perPersonDay = groupCount > 1
+      ? ` <span class="bb-sub">(₹${Math.round(it.val / groupCount).toLocaleString('en-IN')}/person)</span>`
+      : '';
     return `
       <div class="bb-row">
         <span class="bb-label">${it.label}</span>
         <div class="bb-bar-wrap"><div class="bb-bar" style="width:${pct}%"></div></div>
-        <span class="bb-val">₹${it.val.toLocaleString('en-IN')}</span>
+        <span class="bb-val">₹${it.val.toLocaleString('en-IN')}${perPersonDay}</span>
       </div>`;
   }).join('');
 
-  const total = bs.total_inr || items.reduce((s, i) => s + i.val, 0);
-  document.getElementById('budgetTotalVal').textContent = `₹${total.toLocaleString('en-IN')}`;
+  // Total + per-person breakdown
+  const perPerson = groupCount > 1
+    ? ` <span class="bb-perperson">≈ ₹${Math.round(total / groupCount).toLocaleString('en-IN')}/person</span>`
+    : '';
+  document.getElementById('budgetTotalVal').innerHTML =
+    `₹${total.toLocaleString('en-IN')}${perPerson}`;
 }
 
 /* ── Reset ── */

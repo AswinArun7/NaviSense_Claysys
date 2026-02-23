@@ -18,6 +18,8 @@ class TravelRequest(BaseModel):
     accommodation: Optional[str]     = Field(default=None)
     group_size: Optional[str]        = Field(default="couple")
     special_needs: Optional[str]     = Field(default=None)
+    total_budget: Optional[float]    = Field(default=None)   # Total trip budget for the whole group (INR)
+    currency: Optional[str]          = Field(default="INR")  # Currency of total_budget input
 
     class Config:
         populate_by_name = True

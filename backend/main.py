@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 
 from models.request_models import TravelRequest
 from services.logic_service import build_context
-from services.scraper import scrape_destination
+from services.scraper import get_destination_data
 from services.gemini_service import generate_itinerary
 from services.weather_service import get_weather
 from utils.cache import get_cached, set_cached
@@ -58,7 +58,7 @@ def generate_plan(request: TravelRequest):
         return {**cached, "cached": True}
 
     context          = build_context(request.dict(by_alias=False))
-    destination_data = scrape_destination(destination)
+    destination_data = get_destination_data(destination)
     weather          = get_weather(destination, request.start_date)
 
     if weather:

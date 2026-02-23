@@ -48,6 +48,7 @@ def _build_prompt(context: dict, data: dict, request: dict, weather: dict = None
     weather = weather or {}
     rates       = context["daily_rates"]
     attractions = "\n".join(f"- {a}" for a in data.get("attractions", [])[:8]) or "Not available"
+    activities  = "\n".join(f"- {a}" for a in data.get("activities",  [])[:6]) or ""
     food        = "\n".join(f"- {f}" for f in data.get("food",        [])[:6]) or "Not available"
 
     weather_section = ""
@@ -69,7 +70,7 @@ TRIP DETAILS
 - To:       {request['to']}
 - Duration: {context['days']} days / {context['nights']} nights
 - Season:   {context['season']}
-- Budget:   {context['budget_tier']} (Rs.{rates['hotel']}/night hotel, Rs.{rates['food']}/day food)
+- Budget:   {context['budget_tier']} tier — ₹{context['per_person_per_day']:,}/person/day · ₹{context['total_budget_inr']:,} total for {context['group_count']} {context['group_label']}(s) over {context['days']} days
 - Purposes: {', '.join(context['purposes']) or 'general sightseeing'}
 - Pace:     {context['pace']}
 - Group:    {request.get('group_size', 'couple')}
@@ -81,7 +82,7 @@ Summary: {data.get('summary', '')}
 
 Attractions:
 {attractions}
-
+{f"Activities:{chr(10)}{activities}" if activities else ""}
 Local Food:
 {food}
 

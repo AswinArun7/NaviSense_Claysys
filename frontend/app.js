@@ -684,7 +684,23 @@ const SEASON_INSIGHTS = {
   },
 };
 
-function renderSeasonInsight(dateStr) {
+function renderSeasonInsight(apiData, dateStr) {
+  // 1. Prioritize dynamic insight from Gemini if available
+  if (apiData && apiData.seasonal_insight) {
+    const data = apiData.seasonal_insight;
+    // Fallback badge color if it's missing or says "blue | red | etc"
+    const color = data.badge_color && data.badge_color.startsWith('#')
+      ? data.badge_color.split(' ')[0]
+      : '#06b6d4';
+
+    document.getElementById('seasonBody').innerHTML = `
+      <div class="season-badge" style="background:${color}22;color:${color}">${data.badge_text}</div>
+      <p>${data.description}</p>
+    `;
+    return;
+  }
+
+  // 2. Fallback to hardcoded logic for older cached itineraries
   const season = getSeason(dateStr);
   if (!season) return;
   const data = SEASON_INSIGHTS[season.label];
@@ -718,6 +734,44 @@ function renderTips(tipsArr) {
     ? tipsArr
     : TIPS_POOL.sort(() => Math.random() - .5).slice(0, 4);
   document.getElementById('tipsList').innerHTML = arr.map(t => `<li>${t}</li>`).join('');
+}
+
+/* ── Transport Intelligence ── */
+function renderTransport(data, origin, dest) {
+  const card = document.getElementById('transportCard');
+  if (!data || Object.keys(data).length === 0) {
+    card.style.display = 'none';
+    return;
+  }
+
+  const mapsLink = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dest)}`;
+
+  const getRow = (icon, label, value) => {
+    if (!value || value.toLowerCase() === 'n/a' || value.toLowerCase() === 'none') return '';
+    return `
+      <div style="margin-bottom: 8px;">
+        <span style="font-weight: 600; color: var(--c-text);">${icon} ${label}:</span> ${value}
+      </div>
+    `;
+  };
+
+  const html = `
+    <div style="margin-bottom: 12px;">
+      <span style="font-weight: 700; color: var(--c-text);">${data.recommended_mode || 'Auto'}</span>
+      <span style="display: block; font-size: 0.8rem; margin-top: 4px;">${data.approx_reason || ''}</span>
+    </div>
+    
+    ${getRow('✈️', 'Airport', data.nearest_airport)}
+    ${getRow('🚉', 'Station', data.major_railway_station)}
+    ${getRow('🛣️', 'Road', data.road_connectivity)}
+
+    <a href="${mapsLink}" target="_blank" class="btn btn-ghost btn-sm" style="width: 100%; justify-content: center; gap: 6px; margin-top: 10px;">
+      🗺️ View Google Maps Route
+    </a>
+  `;
+
+  document.getElementById('transportBody').innerHTML = html;
+  card.style.display = 'block';
 }
 
 /* ── Context chips ── */
@@ -880,7 +934,10 @@ function renderResult(apiData, requestBody) {
   document.getElementById('sumActivities').textContent = totalActivities;
 
   // Season insight
-  renderSeasonInsight(requestBody.start_date);
+  renderSeasonInsight(apiData, requestBody.start_date);
+
+  // Transport Intelligence
+  renderTransport(apiData.transport_intelligence, requestBody.from, requestBody.to);
 
   // Weather — show if returned by API
   renderWeather(apiData.weather);

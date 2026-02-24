@@ -140,6 +140,19 @@ Return ONLY valid JSON. No markdown. No code fences. No commentary. Just the raw
     "activities_inr": 0,
     "total_inr": 0
   }},
+  "seasonal_insight": {{
+    "badge_text": "❄️ Winter — Peak Snow Season",
+    "badge_color": "#06b6d4 | #ef4444 | #f59e0b | #f97316",
+    "description": "Short explanation of why this season is good/bad for this specific destination.",
+    "tips": ["tip1", "tip2", "tip3"]
+  }},
+  "transport_intelligence": {{
+    "recommended_mode": "Flight | Train | Bus | Car",
+    "approx_reason": "Flight is best for the 1500km distance from {request.get('from', '')} to {request['to']}",
+    "nearest_airport": "Name of nearest airport and distance",
+    "major_railway_station": "Name of major railway station and distance",
+    "road_connectivity": "Notes on highway access or bus routes"
+  }},
   "tips": ["tip1", "tip2", "tip3"]
 }}
 """.strip()

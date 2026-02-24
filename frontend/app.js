@@ -1175,6 +1175,3 @@ function animateTrail() {
   requestAnimationFrame(animateTrail);
 }
 animateTrail();
-
-console.log('%cNavisense ✦ AI Travel Planner', 'color:#6c63ff;font-size:18px;font-weight:800;');
-console.log('%cUI Demo — No backend required', 'color:#9ba3c4;');

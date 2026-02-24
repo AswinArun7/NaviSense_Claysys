@@ -92,6 +92,7 @@ INSTRUCTIONS
 - Include one local food experience per day
 - Use the destination data above as factual grounding
 - If weather data is provided, suggest weather-appropriate activities
+- For EACH activity provide exactly 3 alternatives drawn from the destination data (different category or cost tier)
 
 Return ONLY valid JSON. No markdown. No code fences. No commentary. Just the raw JSON object:
 {{
@@ -107,7 +108,27 @@ Return ONLY valid JSON. No markdown. No code fences. No commentary. Just the raw
           "title": "string",
           "description": "string",
           "category": "sightseeing | food | adventure | culture | relaxation",
-          "cost_inr": 0
+          "cost_inr": 0,
+          "alternatives": [
+            {{
+              "title": "string",
+              "description": "string",
+              "category": "sightseeing | food | adventure | culture | relaxation",
+              "cost_inr": 0
+            }},
+            {{
+              "title": "string",
+              "description": "string",
+              "category": "sightseeing | food | adventure | culture | relaxation",
+              "cost_inr": 0
+            }},
+            {{
+              "title": "string",
+              "description": "string",
+              "category": "sightseeing | food | adventure | culture | relaxation",
+              "cost_inr": 0
+            }}
+          ]
         }}
       ]
     }}

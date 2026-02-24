@@ -2119,6 +2119,175 @@ textarea {
 /* ════════════════════════════════════════════════
    RESPONSIVE
 ════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════
+   MODIFY BUTTON & SLOT HIGHLIGHT
+════════════════════════════════════════════════ */
+.ts-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.ts-modify-btn {
+  font-size: .72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(108, 99, 255, .35);
+  background: rgba(108, 99, 255, .1);
+  color: var(--c-brand);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ts-modify-btn:hover {
+  background: rgba(108, 99, 255, .22);
+  border-color: var(--c-brand);
+}
+
+@keyframes slotFlash {
+  0% {
+    background: rgba(108, 99, 255, .18);
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+.slot-updated {
+  animation: slotFlash 1.2s ease-out;
+  border-radius: var(--radius-md);
+}
+
+/* ════════════════════════════════════════════════
+   MODIFY ALTERNATIVES MODAL
+════════════════════════════════════════════════ */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: rgba(7, 8, 15, .75);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-card {
+  background: var(--c-surface-2);
+  border: 1px solid var(--c-border-hi);
+  border-radius: var(--radius-xl);
+  padding: 28px;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, .6);
+  animation: modalIn .2s ease;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.modal-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.modal-close {
+  font-size: 1rem;
+  color: var(--c-text-3);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+}
+
+.modal-close:hover {
+  background: rgba(255, 255, 255, .06);
+  color: var(--c-text);
+}
+
+.modal-subtitle {
+  font-size: .85rem;
+  color: var(--c-text-2);
+  margin-bottom: 20px;
+}
+
+.modal-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.modal-option {
+  background: var(--c-surface-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.modal-option:hover {
+  border-color: var(--c-brand);
+  background: rgba(108, 99, 255, .1);
+}
+
+.mo-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mo-title {
+  font-size: .9rem;
+  font-weight: 700;
+}
+
+.mo-cost {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--c-brand);
+}
+
+.mo-desc {
+  font-size: .8rem;
+  color: var(--c-text-2);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.modal-cancel {
+  width: 100%;
+  justify-content: center;
+  margin-top: 4px;
+}
+
 @media (max-width: 1024px) {
   .ir-layout {
     grid-template-columns: 1fr;

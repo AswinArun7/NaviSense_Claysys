@@ -709,6 +709,20 @@
     </div>
   </footer>
 
+  <!-- ═══════════════════════════ MODIFY ALTERNATIVES MODAL ═══════════════════════════ -->
+  <div class="modal-overlay" id="modifyModal" role="dialog" aria-modal="true" aria-label="Choose alternative activity"
+    style="display:none">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">🔄 Choose an Alternative</h3>
+        <button class="modal-close" onclick="closeModifyModal()" aria-label="Close">✕</button>
+      </div>
+      <p class="modal-subtitle">Currently: <strong id="modalCurrentActivity"></strong></p>
+      <div class="modal-options" id="modalOptions"></div>
+      <button class="btn btn-ghost btn-sm modal-cancel" onclick="closeModifyModal()">Keep current</button>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 

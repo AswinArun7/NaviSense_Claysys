@@ -462,18 +462,22 @@ function renderTimeslotTags(tags) {
   }).join('');
 }
 
+/** Stored itinerary data (raw API days array) — used for modify flow. */
+let itineraryState = [];
+
 function renderTimeline(days) {
+  itineraryState = days;   // persist for modify flow
   const container = document.getElementById('timelineContent');
   container.innerHTML = '';
   let totalActivities = 0;
 
-  days.forEach((day, i) => {
+  days.forEach((day, di) => {
     totalActivities += day.activities.length;
     const card = document.createElement('div');
-    card.className = 'day-card' + (i === 0 ? ' open' : '');
+    card.className = 'day-card' + (di === 0 ? ' open' : '');
     card.innerHTML = `
       <div class="day-header" onclick="toggleDay(this)">
-        <div class="day-num">D${i + 1}</div>
+        <div class="day-num">D${di + 1}</div>
         <div class="day-info">
           <div class="day-title">${day.title}</div>
           <div class="day-sub">${day.subtitle}</div>
@@ -482,14 +486,19 @@ function renderTimeline(days) {
       </div>
       <div class="day-body">
         ${day.activities.map((act, ai) => `
-          <div class="time-slot">
+          <div class="time-slot" id="slot-${di}-${ai}">
             <div class="ts-time">${TIMES[act.period]}</div>
             <div class="ts-dot-col">
               <div class="ts-dot"></div>
               ${ai < day.activities.length - 1 ? '<div class="ts-line"></div>' : ''}
             </div>
             <div class="ts-content">
-              <div class="ts-title">${act.title}</div>
+              <div class="ts-title-row">
+                <span class="ts-title">${act.title}</span>
+                ${(act.alternatives && act.alternatives.length)
+        ? `<button class="ts-modify-btn" onclick="openModifyModal(${di},${ai})" title="Swap this activity">✏️ Modify</button>`
+        : ''}
+              </div>
               <div class="ts-desc">${act.desc}</div>
               <div class="ts-tags">${renderTimeslotTags(act.tags)}</div>
             </div>
@@ -507,6 +516,93 @@ window.toggleDay = function (header) {
   const card = header.parentElement;
   card.classList.toggle('open');
 };
+
+/* ─────────────────────────────────────────
+   MODIFY FLOW — swap activities locally
+───────────────────────────────────────── */
+
+let _modifyCtx = null;  // { dayIdx, actIdx }
+
+/** Open the alternatives modal for a specific activity slot. */
+window.openModifyModal = function (dayIdx, actIdx) {
+  const act = itineraryState[dayIdx]?.activities[actIdx];
+  if (!act) return;
+
+  _modifyCtx = { dayIdx, actIdx };
+
+  document.getElementById('modalCurrentActivity').textContent = act.title;
+
+  const alts = act.alternatives || [];
+  document.getElementById('modalOptions').innerHTML = alts.length
+    ? alts.map((alt, i) => `
+        <button class="modal-option" onclick="selectAlternative(${i})">
+          <div class="mo-top">
+            <span class="mo-title">${alt.title}</span>
+            <span class="mo-cost">${alt.cost_inr > 0 ? '₹' + alt.cost_inr.toLocaleString('en-IN') : 'Free'}</span>
+          </div>
+          <p class="mo-desc">${alt.description || ''}</p>
+          <span class="ts-tag type-${alt.category}">${alt.category}</span>
+        </button>`).join('')
+    : '<p style="color:var(--c-text-3)">No alternatives available for this slot.</p>';
+
+  const modal = document.getElementById('modifyModal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+};
+
+/** Swap current activity with the chosen alternative and re-render that slot. */
+window.selectAlternative = function (altIdx) {
+  if (!_modifyCtx) return;
+  const { dayIdx, actIdx } = _modifyCtx;
+  const act = itineraryState[dayIdx]?.activities[actIdx];
+  if (!act) return;
+
+  const chosen = act.alternatives[altIdx];
+  if (!chosen) return;
+
+  // Swap: put current into alternatives pool, put chosen as the main
+  const oldAlts = [...(act.alternatives || [])];
+  oldAlts.splice(altIdx, 1);
+  oldAlts.push({ title: act.title, description: act.desc, category: act.tags?.[0]?.toLowerCase() || 'sightseeing', cost_inr: 0 });
+
+  // Update state
+  itineraryState[dayIdx].activities[actIdx] = {
+    ...act,
+    title: chosen.title,
+    desc: chosen.description,
+    tags: [
+      chosen.category.charAt(0).toUpperCase() + chosen.category.slice(1),
+      chosen.cost_inr > 0 ? `₹${chosen.cost_inr.toLocaleString('en-IN')}` : 'Free',
+    ],
+    alternatives: oldAlts,
+  };
+
+  closeModifyModal();
+
+  // Re-render only the affected slot
+  const slotEl = document.getElementById(`slot-${dayIdx}-${actIdx}`);
+  if (slotEl) {
+    const updated = itineraryState[dayIdx].activities[actIdx];
+    slotEl.querySelector('.ts-title').textContent = updated.title;
+    slotEl.querySelector('.ts-desc').textContent = updated.desc;
+    slotEl.querySelector('.ts-tags').innerHTML = renderTimeslotTags(updated.tags);
+    // flash highlight
+    slotEl.classList.add('slot-updated');
+    setTimeout(() => slotEl.classList.remove('slot-updated'), 1200);
+  }
+};
+
+/** Close the alternatives modal. */
+window.closeModifyModal = function () {
+  document.getElementById('modifyModal').style.display = 'none';
+  document.body.style.overflow = '';
+  _modifyCtx = null;
+};
+
+// Close on backdrop click
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'modifyModal') closeModifyModal();
+});
 
 /* ── Budget estimation ── */
 const BUDGET_RATES = {
@@ -752,6 +848,7 @@ function renderResult(apiData, requestBody) {
         act.category ? act.category.charAt(0).toUpperCase() + act.category.slice(1) : 'Activity',
         act.cost_inr > 0 ? `₹${act.cost_inr.toLocaleString('en-IN')}` : 'Free',
       ],
+      alternatives: act.alternatives || [],   // ← carry through for Modify button
     })),
   }));
 

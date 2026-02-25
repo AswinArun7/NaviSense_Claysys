@@ -31,9 +31,6 @@ def generate_itinerary(context: dict, destination_data: dict, request: dict, wea
     Returns:
         Parsed itinerary dict, or a fallback dict on failure.
     """
-    if not client:
-        logger.error("Gemini client not initialized — GEMINI_API_KEY missing.")
-        return _fallback(request, context)
 
     prompt   = _build_prompt(context, destination_data, request, weather or {})
     response = _call_gemini(prompt)

@@ -9,12 +9,13 @@ import json
 import logging
 from typing import Optional
 
-from google import genai
+import google.generativeai as genai
 from config import GEMINI_API_KEY, GEMINI_MODEL
 
 logger = logging.getLogger(__name__)
 
-client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
+if GEMINI_API_KEY:
+    genai.configure(api_key=GEMINI_API_KEY)
 
 
 def generate_itinerary(context: dict, destination_data: dict, request: dict, weather: dict = None) -> dict:
@@ -159,12 +160,10 @@ Return ONLY valid JSON. No markdown. No code fences. No commentary. Just the raw
 
 
 def _call_gemini(prompt: str) -> Optional[str]:
-    """Send prompt to Gemini using the new google-genai SDK."""
+    """Send prompt to Gemini using the google-generativeai SDK."""
     try:
-        response = client.models.generate_content(
-            model=GEMINI_MODEL,
-            contents=prompt,
-        )
+        model = genai.GenerativeModel(GEMINI_MODEL)
+        response = model.generate_content(prompt)
         logger.info("Gemini responded successfully.")
         return response.text.strip()
     except Exception as e:

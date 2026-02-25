@@ -161,7 +161,7 @@ frontend/
 
 ## Hosted Version
 Frontend: `<Vercel URL>` (Update after deployment)  
-Backend: `<Render URL>` (Update after deployment)  
+Backend: `https://navisense-claysys.onrender.com`
 *Note: The first request may take ~20–30 seconds due to free-tier cloud cold starts.*
 
 ---

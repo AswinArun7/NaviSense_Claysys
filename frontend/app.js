@@ -789,10 +789,7 @@ function renderContextChips(data) {
 }
 
 /* ── Generate Itinerary ── */
-const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8000"
-    : "https://navisense-claysys.onrender.com";
+const API_BASE = "https://navisense-claysys.onrender.com";
 
 
 window.generateItinerary = async function () {

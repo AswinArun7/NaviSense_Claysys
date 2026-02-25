@@ -159,6 +159,13 @@ frontend/
 
 ---
 
+## Hosted Version
+Frontend: `<Vercel URL>` (Update after deployment)  
+Backend: `<Render URL>` (Update after deployment)  
+*Note: The first request may take ~20–30 seconds due to free-tier cloud cold starts.*
+
+---
+
 ## Design Decision Tradeoffs
 - **No Booking APIs:** Deliberately excluded to avoid anti-bot blocks, rate limits, and fragile dependencies during hackathon evaluation.
 - **Deterministic vs AI:** Mathematics (budget per person) and hard data (weather/scraped arrays) are handled by standard Python logic. The AI is *only* used for reasoning and formatting, significantly reducing hallucination risk.

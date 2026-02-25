@@ -789,7 +789,11 @@ function renderContextChips(data) {
 }
 
 /* ── Generate Itinerary ── */
-const API_BASE = 'http://localhost:8000';
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:8000"
+    : "https://<RENDER_BACKEND_URL>";
+
 
 window.generateItinerary = async function () {
   if (!validateStep(4)) return;

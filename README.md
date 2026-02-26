@@ -1,63 +1,108 @@
 # Navisense — Context-Aware AI Travel Planner
 
 ## Overview
-Navisense is a full-stack travel planning application that generates structured, customizable itineraries based on user preferences, budget constraints, group size, seasonal timing, and live weather conditions.
 
-The system combines deterministic backend logic with structured LLM generation to produce realistic and context-aware travel plans.
+Navisense is a full-stack travel planning application that generates structured, customizable itineraries based on:
+
+* User preferences
+* Budget constraints
+* Group size
+* Seasonal timing
+* Live weather conditions
+
+The system combines deterministic backend logic with structured LLM generation to produce realistic, grounded, and context-aware travel plans.
+
+---
 
 ## Problem Statement
-Many automated travel planners struggle with:
-- Providing generic, hallucinated itineraries
-- Ignoring real-world group sizes and actual per-person budget distribution
-- Failing to adapt to hyper-local seasonality or live weather
-- Offering no interactive modification options after generation
-- Relying heavily on brittle booking APIs or static templates
 
-**Navisense solves these issues by:**
-- Grounding itinerary generation in scraped real-world data
-- Injecting live weather forecasts into the planning context
-- Computing strict per-person budget constraints prior to AI generation
-- Allowing instant, interactive activity swapping directly on the frontend
-- Designing the architecture with graceful failovers to ensure reliability
+Many automated travel planners struggle with:
+
+* Providing generic, hallucinated itineraries
+* Ignoring real-world group sizes and per-person budget distribution
+* Failing to adapt to hyper-local seasonality or live weather
+* Offering no interactive modification options after generation
+* Relying heavily on brittle booking APIs or static templates
+
+### Navisense solves these issues by:
+
+* Grounding itinerary generation in scraped real-world data
+* Injecting live weather forecasts into the planning context
+* Computing strict per-person budget constraints prior to AI generation
+* Allowing instant, interactive activity swapping directly on the frontend
+* Designing the architecture with graceful failovers for reliability
 
 ---
 
 ## Key Features
 
 ### 1. Multi-Source Data Grounding
-Destination context is collected from multiple structured sources:
-- **Wikivoyage:** Extracts See/Do/Eat recommendations and local tips.
-- **Wikipedia:** Acts as a fallback for core attractions and historical context.
-- **Incredible India:** Specialized routing for Indian destinations to pull cultural enrichment.
-*Note: Each scraper runs with strict timeouts. Graceful degradation ensures failures in any single source never break the parsing pipeline.*
+
+Destination context is collected from multiple sources:
+
+* **Wikivoyage** – Extracts structured See/Do/Eat recommendations
+* **Wikipedia** – Fallback for core attractions and background context
+* **Incredible India** – Specialized routing for Indian destinations
+
+Each scraper runs with strict timeouts. If any source fails, the system degrades gracefully without breaking itinerary generation.
+
+---
 
 ### 2. Group-Aware Budget Engine
-The system ensures financial consistency:
-- Accepts a total group budget and specific group size (e.g., Solo, Couple, Family).
-- Calculates a strict `per_person_per_day` constraint.
-- Feeds exact financial constraints into the AI to ground pricing suggestions.
-- Renders an itemized breakdown of group totals and per-person splits locally.
+
+The system enforces financial realism:
+
+* Accepts total group budget
+* Maps group size (Solo, Couple, Family, etc.)
+* Computes strict `per_person_per_day` constraint
+* Feeds precise budget boundaries into the AI
+* Renders itemized breakdown of accommodation, food, transport, and activities
+
+---
 
 ### 3. Seasonal & Location-Aware Planning
-Dynamic contextualization based on travel dates:
-- Identifies the exact season (e.g., Spring, Winter) and cross-references it with the destination.
-- Injects specific insights (e.g., "Winter in Manali = Peak Snow Season", not just generic "Off-Season" assumptions).
+
+* Detects season from travel dates
+* Cross-references with destination context
+* Injects dynamic seasonal insight (e.g., “Winter in Manali = Peak Snow Season”)
+* Provides contextual travel tips
+
+---
 
 ### 4. Live Weather Integration
+
 Powered by Open-Meteo:
-- Resolves destination geodata to fetch the live 7-day forecast.
-- Displays actual temperature and field conditions on the UI.
-- Injects weather context into the AI prompt to enforce climate-appropriate activity and packing suggestions.
+
+* Geocodes destination
+* Fetches 7-day forecast
+* Displays temperature and conditions
+* Injects weather into AI prompt for climate-aware suggestions
+
+---
 
 ### 5. Transport Intelligence Layer
-Instead of fragile, rate-limited flight-scraping APIs, Navisense uses deterministic routing logic:
-- Recommends the optimal travel mode (Flight / Train / Road) based on origin/destination pairs.
-- Identifies the nearest airport and major railway station.
-- Generates a deep-linked Google Maps route for immediate navigation logic.
 
-### 6. Interactive Activity Modification (Local Customization)
-The AI schema forces the generation of 3 distinct alternatives for every single time slot. 
-Users can click "Modify" on the frontend to instantly swap activities without triggering expensive or slow backend regeneration calls, strictly maintaining the overall budget profile.
+Instead of fragile booking APIs, Navisense uses deterministic logic:
+
+* Recommends optimal travel mode (Flight / Train / Road)
+* Identifies nearest airport and railway station
+* Provides route intelligence and connectivity explanation
+
+---
+
+### 6. Interactive Activity Modification
+
+Each itinerary activity includes 3 structured alternatives.
+
+Users can:
+
+* Click “Modify”
+* View alternatives
+* Swap instantly
+* Maintain budget consistency
+* Avoid backend regeneration
+
+This ensures zero-latency customization.
 
 ---
 
@@ -65,117 +110,197 @@ Users can click "Modify" on the frontend to instantly swap activities without tr
 
 Navisense follows a layered architecture:
 
-1. **Input Validation Layer**  
-   All user inputs are validated using Pydantic models before processing.
+1. **Input Validation Layer**
+   Pydantic models validate all incoming requests.
 
-2. **Context Aggregation Layer**  
-   Destination data is collected from Wikivoyage, Wikipedia, and Incredible India with timeout protection.
+2. **Context Aggregation Layer**
+   Scrapers gather structured destination data.
 
-3. **Deterministic Logic Layer**  
-   Budget distribution, group size handling, seasonal classification, and transport logic are computed using standard Python logic.
+3. **Deterministic Logic Layer**
+   Budget, season, and group constraints are computed in Python.
 
-4. **Enrichment Layer**  
-   Live weather data is retrieved and injected into the planning context.
+4. **Weather Enrichment Layer**
+   Live forecast injected into planning context.
 
-5. **Structured Generation Layer**  
-   A schema-enforced prompt is sent to Gemini to generate a strictly formatted JSON itinerary.
+5. **Structured Generation Layer**
+   Schema-enforced prompt sent to Gemini.
 
-6. **Local Customization Layer**  
-   Alternative activities are generated upfront to allow instant frontend modifications without additional API calls.
+6. **Local Customization Layer**
+   Alternatives generated upfront for instant UI swapping.
 
 ---
 
-## Architecture
+## System Architecture
 
-The frontend sends validated user inputs to the FastAPI backend.  
-The backend orchestrates scraping, weather retrieval, deterministic computations, caching, and structured LLM generation before returning a finalized itinerary payload.
+Frontend → FastAPI Backend → Cache → Scraper + Weather → Gemini → Structured JSON → Frontend Rendering
 
-### Backend Modules
+---
+
+### Backend Structure
+
 ```
 backend/
-├── main.py                   # FastAPI orchestrator and routing
-├── config.py                 # Environment variables
-├── models/request_models.py  # Strict Pydantic types
+├── main.py                   # FastAPI orchestrator
+├── config.py                 # Environment configuration
+├── models/request_models.py  # Pydantic validation
 ├── services/
-│   ├── scraper.py            # Timeout-enforced BeautifulSoup scraping
-│   ├── gemini_service.py     # Prompt engineering & strict schema enforcement
+│   ├── scraper.py            # Multi-source scraping engine
+│   ├── gemini_service.py     # Prompt + Gemini integration
 │   ├── weather_service.py    # Open-Meteo integration
-│   └── logic_service.py      # Deterministic budget/season computations
+│   └── logic_service.py      # Budget & seasonal computations
 └── utils/
-    ├── cache.py              # TTL JSON cache
-    └── helpers.py            # Deduplication formatting
+    ├── cache.py              # JSON TTL cache (7 days)
+    └── helpers.py            # Deduplication & formatting helpers
 ```
 
-### Frontend Modules
+---
+
+### Frontend Structure
+
 ```
 frontend/
-├── index.html       # Hero, wizard, loader, and itinerary result view
-├── style.css        # Dependency-free dark mode design system
-└── app.js           # API integration, wizard logic, and instant UI modification
+├── index.html       # Wizard + results UI
+├── style.css        # Dark theme design system
+└── app.js           # API integration + modification logic
 ```
 
 ---
 
 ## Technical Design Principles
-- **Strict Validation:** Pydantic models reject malformed inputs before processing.
-- **Enforced JSON Schemas:** The AI is strictly prompted to return parseable JSON, never raw markdown or code fences.
-- **Graceful Degradation:** Scraper and API failures log errors but do not halt itinerary generation.
-- **Caching:** 7-day TTL caching to reduce redundant API usage. Errors are *never* cached.
-- **Dependency-Free Frontend:** Zero framework bloat (HTML, CSS, Vanilla JS).
+
+* Strict validation via Pydantic
+* Enforced JSON schema from AI (no markdown responses)
+* Graceful degradation on scraper failures
+* 7-day TTL caching (errors never cached)
+* Dependency-free frontend (Vanilla JS)
+* Deterministic logic separated from AI reasoning
+
+---
 
 ## Technologies Used
-- **Frontend:** HTML5, CSS3, Vanilla JavaScript
-- **Backend:** Python 3, FastAPI, Pydantic, Uvicorn
-- **Data Gathering:** Requests, BeautifulSoup4, Open-Meteo API
-- **AI/LLM Engine:** Google Gemini 2.5 Flash
+
+Frontend:
+
+* HTML5
+* CSS3
+* Vanilla JavaScript
+
+Backend:
+
+* Python 3.11
+* FastAPI
+* Pydantic
+* Uvicorn
+
+Data:
+
+* Requests
+* BeautifulSoup4
+* Open-Meteo API
+
+AI:
+
+* Google Gemini 2.5 Flash
+
+Deployment:
+
+* Vercel (Frontend)
+* Render (Backend)
+
+---
+
+## Hosted Version
+
+Live Frontend:
+[https://navi-sense-claysys.vercel.app](https://navi-sense-claysys.vercel.app)
+
+Backend API:
+[https://navisense-claysys.onrender.com](https://navisense-claysys.onrender.com)
+
+Swagger API Documentation:
+[https://navisense-claysys.onrender.com/docs](https://navisense-claysys.onrender.com/docs)
+
+Note: First request may take 20–30 seconds due to free-tier cold start.
+
+---
+
+## How to Test (Hosted)
+
+1. Open the frontend URL.
+2. Fill trip details.
+3. Click “Generate”.
+4. Wait for response (cold start may apply).
+5. Use “Modify” button to swap activities instantly.
+6. Use Swagger UI for direct backend testing if required.
 
 ---
 
 ## How to Run Locally
 
-1. **Clone the repository and prepare backend:**
-   ```bash
-   cd backend
-   python -m venv venv
-   source venv/bin/activate  # Or `venv\Scripts\activate` on Windows
-   pip install -r requirements.txt
-   ```
+### 1. Setup Backend
 
-2. **Configure Environment:**
-   Create a `.env` file in the `backend/` directory:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   GEMINI_MODEL=gemini-2.5-flash
-   ```
+```
+cd backend
+python -m venv venv
+venv\Scripts\activate   # Windows
+# or
+source venv/bin/activate  # macOS/Linux
 
-3. **Run the Server:**
-   ```bash
-   uvicorn main:app --reload
-   ```
-   *The API will be available at `http://localhost:8000`*
+pip install -r requirements.txt
+```
 
-4. **Launch Frontend:**
-   Open `frontend/index.html` directly in any modern web browser.
+### 2. Configure Environment
+
+Create a `.env` file inside `backend/`:
+
+```
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
+```
+
+### 3. Run Backend
+
+```
+uvicorn main:app --reload
+```
+
+Backend runs at:
+[http://localhost:8000](http://localhost:8000)
+
+Swagger available at:
+[http://localhost:8000/docs](http://localhost:8000/docs)
+
+### 4. Run Frontend
+
+Open:
+
+```
+frontend/index.html
+```
+
+in a browser.
 
 ---
 
-## Hosted Version
-Frontend: `<Vercel URL>` (Update after deployment)  
-Backend: `https://navisense-claysys.onrender.com`
-*Note: The first request may take ~20–30 seconds due to free-tier cloud cold starts.*
+## Design Tradeoffs
+
+* No direct booking APIs (avoids anti-bot and rate limits)
+* AI used only for structured reasoning, not raw calculations
+* Deterministic financial logic handled outside LLM
+* Slightly larger payload to enable instant modification
 
 ---
-
-## Design Decision Tradeoffs
-- **No Booking APIs:** Deliberately excluded to avoid anti-bot blocks, rate limits, and fragile dependencies during hackathon evaluation.
-- **Deterministic vs AI:** Mathematics (budget per person) and hard data (weather/scraped arrays) are handled by standard Python logic. The AI is *only* used for reasoning and formatting, significantly reducing hallucination risk.
-- **Local State Swapping:** Emitting alternatives in the initial payload increases the first-load payload size slightly, but enables 0ms latency for user modifications.
 
 ## Future Improvements
-- Migration to Redis/PostgreSQL for persistent, distributed caching.
-- Integration of a Geolocation Matrix API for accurate distance/drive-time estimation between daily activities.
-- Hotel/Accommodation specific deep-linking parameters.
-- Serverless deployment (Vercel for Frontend, Render/Railway for Backend).
+
+* Persistent cache (Redis/PostgreSQL)
+* Distance matrix API integration
+* Accommodation deep linking
+* Train/bus route intelligence expansion
+* Production-grade CI/CD
 
 ---
-*Designed with reliability, structured reasoning, and system stability in mind.*
+
+## Conclusion
+
+Navisense demonstrates how deterministic backend logic and structured AI generation can be combined to produce reliable, context-aware, and customizable travel itineraries while maintaining system stability and performance.
